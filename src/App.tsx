@@ -22,7 +22,7 @@ import {
 
 // --- Components ---
 
-const Navbar = () => {
+const Navbar = ({ onJoin }: { onJoin: () => void }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -50,7 +50,10 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-6">
-          <button className="hidden sm:block bg-primary text-cream px-6 py-2.5 rounded-full text-[10px] uppercase tracking-widest font-bold hover:scale-105 transition-transform active:scale-95">
+          <button 
+            onClick={onJoin}
+            className="hidden sm:block bg-primary text-cream px-6 py-2.5 rounded-full text-[10px] uppercase tracking-widest font-bold hover:scale-105 transition-transform active:scale-95"
+          >
             Join Club
           </button>
           <div className="flex items-center gap-4">
@@ -87,13 +90,16 @@ const Navbar = () => {
               </button>
             </div>
             <div className="flex flex-col gap-8 text-4xl font-serif">
-              <a href="#" onClick={() => setMobileMenuOpen(false)}>Shop</a>
-              <a href="#" onClick={() => setMobileMenuOpen(false)}>Club</a>
-              <a href="#" onClick={() => setMobileMenuOpen(false)}>About</a>
-              <a href="#" onClick={() => setMobileMenuOpen(false)}>Events</a>
+              <a href="#" onClick={() => { setMobileMenuOpen(false); }}>Shop</a>
+              <a href="#" onClick={() => { setMobileMenuOpen(false); }}>Club</a>
+              <a href="#" onClick={() => { setMobileMenuOpen(false); }}>About</a>
+              <a href="#" onClick={() => { setMobileMenuOpen(false); }}>Events</a>
             </div>
             <div className="mt-auto">
-              <button className="w-full bg-primary text-cream py-5 rounded-full text-xs uppercase tracking-widest font-bold">
+              <button 
+                onClick={() => { setMobileMenuOpen(false); onJoin(); }}
+                className="w-full bg-primary text-cream py-5 rounded-full text-xs uppercase tracking-widest font-bold"
+              >
                 Join Club
               </button>
             </div>
@@ -105,6 +111,23 @@ const Navbar = () => {
 };
 
 export default function App() {
+  const [showModal, setShowModal] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Autoplay was prevented, showing controls is enough
+          console.log("Autoplay blocked");
+        });
+      }
+    }
+  }, []);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
@@ -122,9 +145,96 @@ export default function App() {
     }
   };
 
+  const handleJoin = () => {
+    setShowModal(true);
+    setIsSubmitted(false);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitted(true);
+    setTimeout(() => {
+      setShowModal(false);
+    }, 2500);
+  };
+
   return (
     <div className="min-h-screen selection:bg-secondary/20">
-      <Navbar />
+      <Navbar onJoin={handleJoin} />
+
+      {/* Membership Modal */}
+      <AnimatePresence>
+        {showModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowModal(false)}
+              className="absolute inset-0 bg-primary/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-xl bg-cream p-12 md:p-16 rounded-sm shadow-2xl overflow-hidden"
+            >
+              <button 
+                onClick={() => setShowModal(false)}
+                className="absolute top-8 right-8 text-primary/40 hover:text-primary"
+              >
+                <X size={24} strokeWidth={1.5} />
+              </button>
+
+              <AnimatePresence mode="wait">
+                {!isSubmitted ? (
+                  <motion.div 
+                    key="form"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <span className="text-[10px] uppercase tracking-widest font-bold text-secondary mb-4 block">Application Form</span>
+                    <h2 className="font-serif text-3xl md:text-4xl text-primary mb-8">Join the inner circle</h2>
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] uppercase font-bold opacity-30">Full Name</label>
+                        <input required type="text" className="bg-transparent border-b border-primary/10 py-3 focus:outline-none focus:border-primary transition-colors font-light" placeholder="Patou L'Epicurien" />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] uppercase font-bold opacity-30">Email Address</label>
+                        <input required type="email" className="bg-transparent border-b border-primary/10 py-3 focus:outline-none focus:border-primary transition-colors font-light" placeholder="patou@patouetrazou.wine" />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] uppercase font-bold opacity-30">A few words about your passion for wine</label>
+                        <textarea className="bg-transparent border-b border-primary/10 py-3 focus:outline-none focus:border-primary transition-colors font-light resize-none h-24" placeholder="I especially love the rhythm of the pour..." />
+                      </div>
+                      <button className="bg-primary text-cream py-5 rounded-sm text-xs uppercase tracking-widest font-bold mt-4 hover:shadow-xl transition-all active:scale-95">
+                        Submit Application
+                      </button>
+                    </form>
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    key="success"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center py-12"
+                  >
+                    <div className="w-20 h-20 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-8">
+                      <Sparkles size={32} className="text-secondary" />
+                    </div>
+                    <h2 className="font-serif text-3xl text-primary mb-4"> Merci de votre intérêt </h2>
+                    <p className="text-primary/60 font-light leading-relaxed">
+                      Votre demande d'adhésion au Club Patou & Zazou a été reçue. Notre sommelier l'examinera dans les plus brefs délais.
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Hero Section */}
       <section className="relative h-screen flex items-center overflow-hidden">
@@ -151,7 +261,10 @@ export default function App() {
               Du bon vin et des produits vrais: le secret du bonheur est ici. Bienvenue chez Patou & Zazou.
             </motion.p>
             <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4">
-              <button className="bg-gold text-primary px-10 py-5 rounded-lg text-xs uppercase tracking-widest font-bold hover:bg-gold/90 transition-colors">
+              <button 
+                onClick={handleJoin}
+                className="bg-gold text-primary px-10 py-5 rounded-lg text-xs uppercase tracking-widest font-bold hover:bg-gold/90 transition-colors"
+              >
                 Reserve a Table
               </button>
               <button className="border border-cream/30 backdrop-blur-sm px-10 py-5 rounded-lg text-xs uppercase tracking-widest font-bold hover:bg-cream/10 transition-colors">
@@ -324,6 +437,55 @@ export default function App() {
         </div>
       </section>
 
+      {/* Story Video Section */}
+      <section className="py-32 bg-primary overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 text-center mb-16">
+          <span className="text-[11px] uppercase tracking-[0.3em] font-bold text-gold mb-6 block">L'Héritage</span>
+          <h2 className="font-serif text-4xl md:text-6xl text-cream">L'Histoire de Patou & Zazou</h2>
+        </div>
+        <div className="max-w-5xl mx-auto px-6">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1 }}
+            className="aspect-video relative rounded-lg overflow-hidden shadow-2xl border border-cream/10 bg-black flex items-center justify-center"
+          >
+            {!videoError ? (
+              <video 
+                ref={videoRef}
+                autoPlay 
+                muted 
+                loop 
+                controls
+                playsInline 
+                className="w-full h-full object-cover z-10"
+                onError={() => setVideoError(true)}
+              >
+                <source src="https://storage.googleapis.com/static.gentle-gecko.com/artifacts/682974fa-9562-4351-893c-236b25121695/patou_zazou_animation_1740994943924.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            ) : (
+              <img 
+                src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&q=80&w=2000" 
+                alt="Patou & Zazou Heritage"
+                className="w-full h-full object-cover opacity-60"
+              />
+            )}
+            
+            <div className="absolute inset-0 z-0 flex flex-col items-center justify-center font-serif text-cream/40">
+              <span className="animate-pulse">Patou & Zazou</span>
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent pointer-events-none z-20" />
+          </motion.div>
+          <div className="mt-12 text-center max-w-2xl mx-auto">
+            <p className="text-cream/70 font-light leading-relaxed">
+              Plus qu'un bar à vin, une rencontre. Une histoire d'élégance, de passion et de partage qui se reflète dans chaque flacon que nous débouchons.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Wine Club Membership */}
       <section className="py-32 bg-primary text-cream">
         <div className="max-w-4xl mx-auto px-6 text-center">
@@ -358,7 +520,10 @@ export default function App() {
             </div>
           </div>
 
-          <button className="bg-gold text-primary px-16 py-6 rounded-full text-xs uppercase tracking-[0.2em] font-bold hover:scale-105 transition-transform active:scale-95 shadow-2xl">
+          <button 
+            onClick={handleJoin}
+            className="bg-gold text-primary px-16 py-6 rounded-full text-xs uppercase tracking-[0.2em] font-bold hover:scale-105 transition-transform active:scale-95 shadow-2xl"
+          >
             Apply for Membership
           </button>
         </div>
